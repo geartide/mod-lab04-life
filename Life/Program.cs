@@ -4,14 +4,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Text.Json;
+using System.IO;
 
 namespace cli_life
 {
     public class Cell
     {
-        public bool IsAlive;
+        public bool IsAlive { get; set; }
         public readonly List<Cell> neighbors = new List<Cell>();
-        private bool IsAliveNext;
+        private bool IsAliveNext { get; set; }
         public void DetermineNextLiveState()
         {
             int liveNeighbors = neighbors.Where(x => x.IsAlive).Count();
@@ -25,10 +27,59 @@ namespace cli_life
             IsAlive = IsAliveNext;
         }
     }
+
+    public class ProgramSettings {
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public int cellSize { get; set; }
+        public double liveDensity { get; set; }
+        public int stepsNeeded { get; set; }
+
+        private ProgramSettings()
+        {
+            this.Width = 0;
+            this.Height = 0;
+            this.cellSize = 0;
+            this.liveDensity = 0;
+            this.stepsNeeded = 0;
+        }
+
+        public ProgramSettings(int Width, int Height, int cellSize, double liveDensity, int stepsNeeded) 
+        {
+            this.Width = Width;
+            this.Height = Height;
+            this.cellSize = cellSize;
+            this.liveDensity = liveDensity;
+            this.stepsNeeded = stepsNeeded;
+        }
+
+        public ProgramSettings(ProgramSettings ps) {
+            this.Width = ps.Width;
+            this.Height = ps.Height;
+            this.cellSize = ps.cellSize;
+            this.liveDensity = ps.liveDensity;
+            this.stepsNeeded = ps.stepsNeeded;
+        }
+
+        public ProgramSettings(string filename) : this(JsonSerializer.Deserialize<ProgramSettings>(File.ReadAllText(filename)))
+        { }
+
+        public static void WriteToFile(string filename, ProgramSettings ps) {
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            string jsonString = JsonSerializer.Serialize(ps, options);
+            File.WriteAllText(filename, jsonString);
+        }
+
+        public static ProgramSettings ReadFromFile(string filename)
+        {
+            return new ProgramSettings(filename);
+        }
+    }
+
     public class Board
     {
-        public readonly Cell[,] Cells;
-        public readonly int CellSize;
+        public Cell[,] Cells { get; }
+        public int CellSize { get; }
 
         public int Columns { get { return Cells.GetLength(0); } }
         public int Rows { get { return Cells.GetLength(1); } }
@@ -47,6 +98,9 @@ namespace cli_life
             ConnectNeighbors();
             Randomize(liveDensity);
         }
+
+        public Board(ProgramSettings ps) : this(ps.Width, ps.Height, ps.cellSize, ps.liveDensity)
+        {}
 
         readonly Random rand = new Random();
         public void Randomize(double liveDensity)
@@ -88,14 +142,30 @@ namespace cli_life
     }
     class Program
     {
-        static Board board;
+        static Board? board;
         static private void Reset()
         {
-            board = new Board(
-                width: 50,
-                height: 20,
-                cellSize: 1,
-                liveDensity: 0.5);
+            ProgramSettings ps;
+
+            string filename = "settings.json";
+
+            if (File.Exists(filename))
+            {
+                ps = ProgramSettings.ReadFromFile(filename);
+            }
+            else {
+                ps = new ProgramSettings(
+                    Width: 50,
+                    Height: 20,
+                    cellSize: 1,
+                    liveDensity: 0.5,
+                    stepsNeeded: 100
+                );
+
+                ProgramSettings.WriteToFile(filename, ps);
+            }
+
+            board = new Board(ps);
         }
         static void Render()
         {
