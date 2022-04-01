@@ -76,6 +76,102 @@ namespace cli_life
         }
     }
 
+    public enum PatternState
+    {
+        Any,
+        Alive,
+        Dead
+    }
+
+    public class PatternCell {
+
+        public int x;
+        public int y;
+
+        public PatternState ps;
+
+        public PatternCell(int x, int y, PatternState ps) {
+            this.x = x;
+            this.y = y;
+            this.ps = ps;
+        }
+    }
+
+    public class Pattern {
+
+        /* Вид файла с паттерном
+         Ш
+         В
+         ЯX (якорь X)
+         ЯY (якорь Y)
+         X0000X
+         001100
+         010010
+         001100
+         X0000X
+         */
+
+        List<PatternCell> cells;
+
+        public Pattern() {
+            cells = new List<PatternCell>();
+        }
+
+        public void Clear() {
+            cells.Clear();
+        }
+
+        public static void ReadFromFile(string filename, Pattern self) {
+
+            self.Clear();
+
+            using (StreamReader sr = File.OpenText(filename))
+            {
+                string line;
+
+                line = sr.ReadLine();
+                int c = int.Parse(line);
+
+                line = sr.ReadLine();
+                int r = int.Parse(line);
+
+                line = sr.ReadLine();
+                int anchor_x = int.Parse(line);
+
+                line = sr.ReadLine();
+                int anchor_y = int.Parse(line);
+
+                for (int i = 0; i < r; i++)
+                {
+
+                    line = sr.ReadLine();
+
+                    for (int j = 0; j < c; j++)
+                    {
+
+                        PatternState ps = PatternState.Any;
+
+                        char ch = line[j];
+                        switch (ch) {
+                            case '0':
+                                ps = PatternState.Dead;
+                                break;
+                            case '1':
+                                ps = PatternState.Alive;
+                                break;
+                            case 'X':
+                                break;
+                            default:
+                                break;
+                        }
+
+                        self.cells.Add(new PatternCell(i - anchor_x, j - anchor_y, ps));
+                    }
+                }
+            }
+        }
+    }
+
     public class Board
     {
         public Cell[,] Cells { get; }
