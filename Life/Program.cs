@@ -203,10 +203,20 @@ namespace cli_life
                 return board;
             }
         }
+
+        public int CountCells() {
+            int result = 0;
+
+            foreach (var cell in Cells) {
+                if (cell.IsAlive) result++;
+            }
+
+            return result;
+        }
     }
     class Program
     {
-        static Board? board;
+        static Board board;
 
         static ProgramSettings ps;
         static private void Reset()
@@ -262,8 +272,9 @@ namespace cli_life
             {
                 Console.Clear();
                 Render();
+                Console.WriteLine("Количество клеток: {0}", board.CountCells());
                 board.Advance();
-                Thread.Sleep(1000);
+                Thread.Sleep(100);
             }
         }
     }
