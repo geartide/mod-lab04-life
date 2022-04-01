@@ -81,8 +81,8 @@ namespace cli_life
         public Cell[,] Cells { get; }
         public int CellSize { get; }
 
-        public int Columns { get { return Cells.GetLength(0); } }
-        public int Rows { get { return Cells.GetLength(1); } }
+        public int Columns { get { return Cells.GetLength(1); } }
+        public int Rows { get { return Cells.GetLength(0); } }
         public int Width { get { return Columns * CellSize; } }
         public int Height { get { return Rows * CellSize; } }
 
@@ -90,9 +90,9 @@ namespace cli_life
         {
             CellSize = cellSize;
 
-            Cells = new Cell[width / cellSize, height / cellSize];
-            for (int x = 0; x < Columns; x++)
-                for (int y = 0; y < Rows; y++)
+            Cells = new Cell[height / cellSize, width / cellSize];
+            for (int x = 0; x < Rows; x++)
+                for (int y = 0; y < Columns; y++)
                     Cells[x, y] = new Cell();
 
             ConnectNeighbors();
@@ -118,15 +118,15 @@ namespace cli_life
         }
         private void ConnectNeighbors()
         {
-            for (int x = 0; x < Columns; x++)
+            for (int x = 0; x < Rows; x++)
             {
-                for (int y = 0; y < Rows; y++)
+                for (int y = 0; y < Columns; y++)
                 {
-                    int xL = (x > 0) ? x - 1 : Columns - 1;
-                    int xR = (x < Columns - 1) ? x + 1 : 0;
+                    int xL = (x > 0) ? x - 1 : Rows - 1;
+                    int xR = (x < Rows - 1) ? x + 1 : 0;
 
-                    int yT = (y > 0) ? y - 1 : Rows - 1;
-                    int yB = (y < Rows - 1) ? y + 1 : 0;
+                    int yT = (y > 0) ? y - 1 : Columns - 1;
+                    int yB = (y < Columns - 1) ? y + 1 : 0;
 
                     Cells[x, y].neighbors.Add(Cells[xL, yT]);
                     Cells[x, y].neighbors.Add(Cells[x, yT]);
@@ -139,14 +139,78 @@ namespace cli_life
                 }
             }
         }
+
+        public static void WriteToFile(string filename, Board board) {
+            using (StreamWriter sw = File.CreateText(filename))
+            {
+                int c = board.Columns;
+                int r = board.Rows;
+
+                sw.WriteLine(c.ToString());
+                sw.WriteLine(r.ToString());
+
+                for (int i = 0; i < r; i++)
+                {
+                    for (int j = 0; j < c; j++)
+                    {
+                        if (board.Cells[i, j].IsAlive)
+                        {
+                            sw.Write('1');
+                        } 
+                        else
+                        {
+                            sw.Write('0');
+                        }
+                    }
+                    sw.Write('\n');
+                }
+            }
+        }
+
+        public static Board ReadFromFile(string filename)
+        {
+            using (StreamReader sr = File.OpenText(filename))
+            {
+                string line;
+
+                line = sr.ReadLine();
+                int c = int.Parse(line);
+
+                line = sr.ReadLine();
+                int r = int.Parse(line);
+
+                Board board = new Board(c, r, 1, 0);
+
+                for (int i = 0; i < r; i++)
+                {
+
+                    line = sr.ReadLine();
+
+                    for (int j = 0; j < c; j++)
+                    {
+                        char ch = line[j];
+                        if (ch == '1')
+                        {
+                            board.Cells[i, j].IsAlive = true;
+                        }
+                        else
+                        {
+                            board.Cells[i, j].IsAlive = false;
+                        }
+                    }
+                }
+
+                return board;
+            }
+        }
     }
     class Program
     {
         static Board? board;
+
+        static ProgramSettings ps;
         static private void Reset()
         {
-            ProgramSettings ps;
-
             string filename = "settings.json";
 
             if (File.Exists(filename))
@@ -173,7 +237,7 @@ namespace cli_life
             {
                 for (int col = 0; col < board.Columns; col++)   
                 {
-                    var cell = board.Cells[col, row];
+                    var cell = board.Cells[row, col];
                     if (cell.IsAlive)
                     {
                         Console.Write('*');
@@ -189,7 +253,12 @@ namespace cli_life
         static void Main(string[] args)
         {
             Reset();
-            while(true)
+
+            string filename = "";
+
+            board = Board.ReadFromFile(filename);
+
+            while (true)
             {
                 Console.Clear();
                 Render();
