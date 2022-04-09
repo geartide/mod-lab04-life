@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Text.Json;
 using System.IO;
+using System.Collections;
 
 namespace cli_life
 {
@@ -83,21 +84,21 @@ namespace cli_life
         Dead
     }
 
-    public class PatternCell {
+    public struct PatternCell {
 
         public int x;
         public int y;
 
         public PatternState ps;
 
-        public PatternCell(int x, int y, PatternState ps) {
+        public PatternCell(int x, int y, PatternState ps = PatternState.Any) {
             this.x = x;
             this.y = y;
             this.ps = ps;
         }
     }
 
-    public class Pattern {
+    public class Pattern : IEnumerable<PatternCell> {
 
         /* Вид файла с паттерном
          Ш
@@ -111,7 +112,17 @@ namespace cli_life
          X0000X
          */
 
-        List<PatternCell> cells;
+        private List<PatternCell> cells;
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return this.GetEnumerator();
+        }
+
+        public IEnumerator<PatternCell> GetEnumerator()
+        {
+            return cells.GetEnumerator();
+        }
 
         public Pattern() {
             cells = new List<PatternCell>();
@@ -168,6 +179,129 @@ namespace cli_life
                         self.cells.Add(new PatternCell(i - anchor_x, j - anchor_y, ps));
                     }
                 }
+            }
+        }
+    }
+
+    // { [ (Фигура), (пат1, пат2, ...) ], ... } -- FigurePatternMap
+    // { [ (Фигура), (Кол-во распознанных) ], ... } -- MatchResults
+
+    public enum Figure_type {
+        Hive
+    }
+
+    public class FigurePatternMap : IEnumerable<KeyValuePair<Figure_type, List<Pattern>>> {
+        private Dictionary<Figure_type, List<Pattern>> dict;
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return this.GetEnumerator();
+        }
+
+        public IEnumerator<KeyValuePair<Figure_type, List<Pattern>>> GetEnumerator() {
+           return dict.GetEnumerator();
+        }
+
+        public List<Pattern> this[Figure_type ft] {
+            get {
+                return dict[ft];    
+            }
+            set {
+                dict[ft] = value;
+            }
+        }
+
+        public FigurePatternMap()
+        {
+            dict = new Dictionary<Figure_type, List<Pattern>>();
+        }
+
+        public FigurePatternMap(FigureTypePatternFiles parm) : this() {
+            foreach (var kvp in parm) {
+                List<Pattern> to_add = new List<Pattern>();
+
+                foreach (var pattern_filename in kvp.Value) {
+                    Pattern pat = new Pattern();
+
+                    Pattern.ReadFromFile(parm.prefix + pattern_filename, pat);
+
+                    to_add.Add(pat);
+                }
+
+                dict.Add(kvp.Key, to_add);
+            }
+        }
+
+        public void Add(Figure_type ft, IEnumerable<Pattern> array)
+        {
+            List<Pattern> patterns = new List<Pattern>();
+
+            foreach (var pattern in array)
+                patterns.Add(pattern);
+
+            dict.Add(ft, patterns);
+        }
+    }
+
+    // Хранение путей к файлам с паттернами и установка соответствия между ними
+    public class FigureTypePatternFiles : IEnumerable<KeyValuePair<Figure_type, List<string>>> {
+        public string prefix;
+        Dictionary<Figure_type, List<string>> dict;
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return this.GetEnumerator();
+        }
+
+        public IEnumerator<KeyValuePair<Figure_type, List<string>>> GetEnumerator()
+        {
+            return dict.GetEnumerator();
+        }
+
+        public FigureTypePatternFiles() {
+            dict = new Dictionary<Figure_type, List<string>>();
+
+            prefix = @"..\..\..\..\patterns\";
+
+            List<string> list = new List<string>();
+
+            list.Add("hive.txt");
+
+            dict.Add(Figure_type.Hive, list);
+        }
+    }
+
+    public class PatternMatchingResults : IEnumerable<KeyValuePair<Figure_type, int>> {
+        private Dictionary<Figure_type, int> dict;
+
+        public PatternMatchingResults() {
+
+            dict = new Dictionary<Figure_type, int>();
+
+            // Для каждой возможной фигуры добавить запись
+            foreach (Figure_type ft in Enum.GetValues(typeof(Figure_type))) {
+                dict.Add(ft, 0);
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return this.GetEnumerator();
+        }
+
+        public IEnumerator<KeyValuePair<Figure_type, int>> GetEnumerator()
+        {
+            return dict.GetEnumerator();
+        }
+
+        public int this[Figure_type ft]
+        {
+            get
+            {
+                return dict[ft];
+            }
+            set
+            {
+                dict[ft] = value;
             }
         }
     }
@@ -252,7 +386,7 @@ namespace cli_life
                         if (board.Cells[i, j].IsAlive)
                         {
                             sw.Write('1');
-                        } 
+                        }
                         else
                         {
                             sw.Write('0');
@@ -309,6 +443,102 @@ namespace cli_life
 
             return result;
         }
+
+        public void Match(FigurePatternMap fpm, out PatternMatchingResults out_pmr) {
+            List<PatternCell> banned_cells = new List<PatternCell>();
+            out_pmr = new PatternMatchingResults();
+
+            for (int i = 0; i < this.Rows; i++) {
+                for (int j = 0; j < this.Columns; j++) {
+
+                    Cell cell = this.Cells[i, j];
+
+                    if (cell.IsAlive)
+                    {
+                        foreach (var kv_pair in fpm)
+                        {
+                            foreach (var pattern in kv_pair.Value)
+                            {
+                                // Цикл для преобразования координат паттерна
+                                // Если задан первый бит, то транспонировать
+                                // Если второй, то домножить x на -1
+                                // Если третий, то y на -1
+                                for (int mode = 0; mode <= 0b111; mode++)
+                                {
+                                    bool pattern_match = true;
+
+                                    foreach (var pattern_cell in pattern)
+                                    {
+                                        int to_add_x = pattern_cell.x;
+                                        int to_add_y = pattern_cell.y;
+
+                                        if ((mode & (1 << 2)) > 0)
+                                        {
+                                            int temp = to_add_y;
+                                            to_add_y = to_add_x;
+                                            to_add_x = temp;
+                                        }
+
+                                        if ((mode & (1 << 1)) > 0)
+                                            to_add_x *= -1;
+
+                                        if ((mode & (1 << 0)) > 0)
+                                            to_add_y *= -1;
+
+                                        int new_index_x = (i + to_add_x) % this.Rows;
+                                        int new_index_y = (j + to_add_y) % this.Columns;
+
+                                        // Из-за паттерна могут быть отрицательные, деление по модулю это не учитывает
+                                        while (new_index_x < 0) new_index_x += this.Rows;
+                                        while (new_index_y < 0) new_index_y += this.Columns;
+
+                                        cell = this.Cells[new_index_x, new_index_y];
+
+                                        bool cell_match = true;
+
+                                        switch (pattern_cell.ps)
+                                        {
+                                            case PatternState.Any:
+                                                break;
+                                            case PatternState.Alive:
+                                                PatternCell cell_to_check = new PatternCell(new_index_x, new_index_y);
+                                                bool cell_is_banned = banned_cells.Contains(cell_to_check);
+
+                                                if (!cell.IsAlive || cell_is_banned)
+                                                {
+                                                    cell_match = false;
+                                                }
+                                                break;
+                                            case PatternState.Dead:
+                                                if (cell.IsAlive) cell_match = false;
+                                                break;
+                                            default:
+                                                break;
+                                        }
+
+                                        if (!cell_match)
+                                        {
+                                            pattern_match = false;
+                                            break;
+                                        }
+                                    }
+
+                                    if (pattern_match)
+                                    {
+                                        out_pmr[kv_pair.Key]++;
+                                        banned_cells.Add(new PatternCell(i, j));
+                                        goto finish_fugure;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                finish_fugure:
+                    ;
+                }
+            }
+        }
     }
     class Program
     {
@@ -364,13 +594,23 @@ namespace cli_life
 
             board = Board.ReadFromFile(filename);
 
+            FigurePatternMap map = new FigurePatternMap(new FigureTypePatternFiles());
+
             while (true)
             {
                 Console.Clear();
                 Render();
-                Console.WriteLine("Количество клеток: {0}", board.CountCells());
+
+                PatternMatchingResults match_results;
+
+                board.Match(map, out match_results);
+
+                foreach (var res in match_results) {
+                    Console.WriteLine("{0}: {1}", res.Key.ToString(), res.Value);
+                }
+
                 board.Advance();
-                Thread.Sleep(100);
+                Thread.Sleep(1000);
             }
         }
     }
