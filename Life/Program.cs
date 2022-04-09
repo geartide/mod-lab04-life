@@ -187,7 +187,15 @@ namespace cli_life
     // { [ (Фигура), (Кол-во распознанных) ], ... } -- MatchResults
 
     public enum Figure_type {
-        Hive
+        Hive,
+        Blinker,
+        Block,
+        Loaf,
+        Boat,
+        Ship,
+        Glider,
+        Beacon,
+        Pulsar
     }
 
     public class FigurePatternMap : IEnumerable<KeyValuePair<Figure_type, List<Pattern>>> {
@@ -263,10 +271,44 @@ namespace cli_life
             prefix = @"..\..\..\..\patterns\";
 
             List<string> list = new List<string>();
+            list.Add("pulsar1.txt");
+            list.Add("pulsar2.txt");
+            list.Add("pulsar3.txt");
+            dict.Add(Figure_type.Pulsar, list);
 
+            list = new List<string>();
             list.Add("hive.txt");
-
             dict.Add(Figure_type.Hive, list);
+
+            list = new List<string>();
+            list.Add("blinker.txt");
+            dict.Add(Figure_type.Blinker, list);
+
+            list = new List<string>();
+            list.Add("block.txt");
+            dict.Add(Figure_type.Block, list);
+
+            list = new List<string>();
+            list.Add("loaf.txt");
+            dict.Add(Figure_type.Loaf, list);
+
+            list = new List<string>();
+            list.Add("boat.txt");
+            dict.Add(Figure_type.Boat, list);
+
+            list = new List<string>();
+            list.Add("ship.txt");
+            dict.Add(Figure_type.Ship, list);
+
+            list = new List<string>();
+            list.Add("glider1.txt");
+            list.Add("glider2.txt");
+            dict.Add(Figure_type.Glider, list);
+
+            list = new List<string>();
+            list.Add("beacon1.txt");
+            list.Add("beacon2.txt");
+            dict.Add(Figure_type.Beacon, list);
         }
     }
 
@@ -446,6 +488,7 @@ namespace cli_life
 
         public void Match(FigurePatternMap fpm, out PatternMatchingResults out_pmr) {
             List<PatternCell> banned_cells = new List<PatternCell>();
+            List<PatternCell> potential_banned_cells = new List<PatternCell>();
             out_pmr = new PatternMatchingResults();
 
             for (int i = 0; i < this.Rows; i++) {
@@ -508,6 +551,10 @@ namespace cli_life
                                                 {
                                                     cell_match = false;
                                                 }
+                                                else
+                                                {
+                                                    potential_banned_cells.Add(cell_to_check);
+                                                }
                                                 break;
                                             case PatternState.Dead:
                                                 if (cell.IsAlive) cell_match = false;
@@ -518,6 +565,7 @@ namespace cli_life
 
                                         if (!cell_match)
                                         {
+                                            potential_banned_cells.Clear();
                                             pattern_match = false;
                                             break;
                                         }
@@ -526,7 +574,8 @@ namespace cli_life
                                     if (pattern_match)
                                     {
                                         out_pmr[kv_pair.Key]++;
-                                        banned_cells.Add(new PatternCell(i, j));
+                                        banned_cells.AddRange(potential_banned_cells);
+                                        potential_banned_cells.Clear();
                                         goto finish_fugure;
                                     }
                                 }
@@ -596,6 +645,9 @@ namespace cli_life
 
             FigurePatternMap map = new FigurePatternMap(new FigureTypePatternFiles());
 
+            int current_stable_count = 0;
+            int total_stable_iterations = 0;
+            
             while (true)
             {
                 Console.Clear();
@@ -606,7 +658,27 @@ namespace cli_life
                 board.Match(map, out match_results);
 
                 foreach (var res in match_results) {
-                    Console.WriteLine("{0}: {1}", res.Key.ToString(), res.Value);
+                    if (res.Value > 0) {
+                        Console.WriteLine("{0}: {1}", res.Key.ToString(), res.Value);
+                    }
+                }
+
+                int new_cell_count = board.CountCells();
+
+                Console.WriteLine("Количество клеток: {0}", new_cell_count);
+
+                if (new_cell_count == current_stable_count)
+                {
+                    total_stable_iterations++;
+                }
+                else
+                {
+                    current_stable_count = new_cell_count;
+                    total_stable_iterations = 0;
+                }
+
+                if (total_stable_iterations > 5) {
+                    Console.WriteLine("Поле стабильно по количеству клеток.");
                 }
 
                 board.Advance();
