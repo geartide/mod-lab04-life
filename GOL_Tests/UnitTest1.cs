@@ -1,6 +1,13 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+п»їusing Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using cli_life;
+
+// РљРРўРђР™РЎРљРР• РР•Р РћР“Р›РР¤Р« Р§РўРћР‘Р« VISUAL STUDIO
+// РЎРћРҐР РђРќРР›Рћ Р¤РђР™Р› Р’ РљРћР”РР РћР’РљР• UTF-8 Р’ 2022 Р“РћР”РЈ
+//
+// Р®РЅРёРєРѕРґ РїРѕСЏРІРёР»СЃСЏ РІ 1992 РіРѕРґСѓ.
+//
+// е…љзљ„иЂ»иѕ±
 
 namespace GOL_Tests
 {
@@ -10,7 +17,7 @@ namespace GOL_Tests
         [TestMethod]
         public void TestCellCounting()
         {
-            // О том, что определённое поле из файла имеет нужное количество клеток
+            // Рћ С‚РѕРј, С‡С‚Рѕ РѕРїСЂРµРґРµР»С‘РЅРЅРѕРµ РїРѕР»Рµ РёР· С„Р°Р№Р»Р° РёРјРµРµС‚ РЅСѓР¶РЅРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РєР»РµС‚РѕРє
 
             Board board = Board.ReadFromFile("../../../test_boards/stable_test.txt");
 
@@ -20,7 +27,7 @@ namespace GOL_Tests
         [TestMethod]
         public void TestPeriodicMatching()
         {
-            // О распознавании каждого периода некоторых периодических фигур
+            // Рћ СЂР°СЃРїРѕР·РЅР°РІР°РЅРёРё РєР°Р¶РґРѕРіРѕ РїРµСЂРёРѕРґР° РЅРµРєРѕС‚РѕСЂС‹С… РїРµСЂРёРѕРґРёС‡РµСЃРєРёС… С„РёРіСѓСЂ
 
             Board board = Board.ReadFromFile("../../../test_boards/periodic_test.txt");
 
@@ -49,7 +56,7 @@ namespace GOL_Tests
         [TestMethod]
         public void TestStableMatching()
         {
-            // О распознавании каждого периода некоторых статических фигур
+            // Рћ СЂР°СЃРїРѕР·РЅР°РІР°РЅРёРё РєР°Р¶РґРѕРіРѕ РїРµСЂРёРѕРґР° РЅРµРєРѕС‚РѕСЂС‹С… СЃС‚Р°С‚РёС‡РµСЃРєРёС… С„РёРіСѓСЂ
 
             Board board = Board.ReadFromFile("../../../test_boards/stable_test.txt");
 
@@ -88,7 +95,7 @@ namespace GOL_Tests
         [TestMethod]
         public void TestShipMatching()
         {
-            // О распознавании каждого периода некоторых фигур-кораблей
+            // Рћ СЂР°СЃРїРѕР·РЅР°РІР°РЅРёРё РєР°Р¶РґРѕРіРѕ РїРµСЂРёРѕРґР° РЅРµРєРѕС‚РѕСЂС‹С… С„РёРіСѓСЂ-РєРѕСЂР°Р±Р»РµР№
 
             Board board = Board.ReadFromFile("../../../test_boards/ships_test.txt");
 
@@ -121,7 +128,7 @@ namespace GOL_Tests
         [TestMethod]
         public void TestGosperGunProducesGliders()
         {
-            // О получении Glider в результате работы Gosper Gun
+            // Рћ РїРѕР»СѓС‡РµРЅРёРё Glider РІ СЂРµР·СѓР»СЊС‚Р°С‚Рµ СЂР°Р±РѕС‚С‹ Gosper Gun
 
             Board board = Board.ReadFromFile("../../../test_boards/gospergun_test.txt");
 
