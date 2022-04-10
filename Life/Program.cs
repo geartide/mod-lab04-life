@@ -195,7 +195,8 @@ namespace cli_life
         Ship,
         Glider,
         Beacon,
-        Pulsar
+        Pulsar,
+        LWSS
     }
 
     public class FigurePatternMap : IEnumerable<KeyValuePair<Figure_type, List<Pattern>>> {
@@ -304,6 +305,11 @@ namespace cli_life
             list.Add("glider1.txt");
             list.Add("glider2.txt");
             dict.Add(Figure_type.Glider, list);
+
+            list = new List<string>();
+            list.Add("lwss1.txt");
+            list.Add("lwss2.txt");
+            dict.Add(Figure_type.LWSS, list);
 
             list = new List<string>();
             list.Add("beacon1.txt");
