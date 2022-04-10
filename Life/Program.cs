@@ -589,27 +589,57 @@ namespace cli_life
             }
         }
     }
+    
     class Program
     {
         static Board board;
 
         static ProgramSettings ps;
-        static private void Reset()
-        {
-            string filename = "settings.json";
 
+        public static bool IsSymmetric(Figure_type ft) {
+            switch (ft) {
+                case Figure_type.Hive:
+                case Figure_type.Blinker:
+                case Figure_type.Block:
+                case Figure_type.Pulsar:
+                    return true;
+                default:
+                    break;
+            }
+            
+            return false;
+        }
+
+        public static int CountSymmetricFigures(Board board, PatternMatchingResults pmr) {
+            int result = 0;
+
+            foreach (Figure_type ft in Enum.GetValues(typeof(Figure_type))) {
+                if (IsSymmetric(ft)) {
+                    result += pmr[ft];
+                }
+            }
+
+            return result;
+        }
+
+        public static void InitializePS() {
+            ps = new ProgramSettings(
+                Width: 50,
+                Height: 20,
+                cellSize: 1,
+                liveDensity: 0.5,
+                stepsNeeded: 100
+            );
+        }
+
+        static private void Reset(string filename)
+        {
             if (File.Exists(filename))
             {
                 ps = ProgramSettings.ReadFromFile(filename);
             }
             else {
-                ps = new ProgramSettings(
-                    Width: 50,
-                    Height: 20,
-                    cellSize: 1,
-                    liveDensity: 0.5,
-                    stepsNeeded: 100
-                );
+                InitializePS();
 
                 ProgramSettings.WriteToFile(filename, ps);
             }
@@ -637,13 +667,54 @@ namespace cli_life
         }
         static void Main(string[] args)
         {
-            Reset();
-
             string filename = "";
+            string save_filename = "";
 
-            board = Board.ReadFromFile(filename);
+            Console.WriteLine("0 - Случайная генерация поля");
+            Console.WriteLine("1 - Чтение поля из файла");
+            Console.WriteLine("Выбор:");
+
+            bool setting_read_from_file = false;
+            if (int.Parse(Console.ReadLine()) == 1) setting_read_from_file = true;
+
+            Console.WriteLine("0 - Не сохранять поле в файл по окончании работы");
+            Console.WriteLine("1 - Сохранять поле в файл по окончании работы");
+            Console.WriteLine("Выбор:");
+
+            bool setting_save_to_file = false;
+            if (int.Parse(Console.ReadLine()) == 1) setting_save_to_file = true;
+
+            if (setting_save_to_file) {
+                Console.WriteLine("Введите путь к файлу для сохранения поля:");
+                save_filename = Console.ReadLine();
+            }
+
+            if (setting_read_from_file) {
+                Console.WriteLine("Введите путь к файлу с сохранённым полем:");
+                filename = Console.ReadLine();
+            }
+            else
+            {
+                Console.WriteLine("Введите путь к файлу с настройками генерации поля:");
+                filename = Console.ReadLine();
+            }
+
+            if (setting_read_from_file == false)
+            {
+                Reset(filename);
+            }
+            else
+            {
+                InitializePS();
+                board = Board.ReadFromFile(filename);
+
+                Console.WriteLine("Введите количество шагов:");
+                ps.stepsNeeded = int.Parse(Console.ReadLine());
+            }
 
             FigurePatternMap map = new FigurePatternMap(new FigureTypePatternFiles());
+
+            int iterations_done = 0;
 
             int current_stable_count = 0;
             int total_stable_iterations = 0;
@@ -681,9 +752,20 @@ namespace cli_life
                     Console.WriteLine("Поле стабильно по количеству клеток.");
                 }
 
+                Console.WriteLine("Симметричных элементов на поле: {0}", CountSymmetricFigures(board, match_results));
+
                 board.Advance();
                 Thread.Sleep(1000);
+
+                iterations_done++;
+
+                if (iterations_done > ps.stepsNeeded) {
+                    break;
+                }
             }
+
+            if (setting_save_to_file)
+                Board.WriteToFile(save_filename, board);
         }
     }
 }
