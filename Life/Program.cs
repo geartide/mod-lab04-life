@@ -269,7 +269,7 @@ namespace cli_life
         public FigureTypePatternFiles() {
             dict = new Dictionary<Figure_type, List<string>>();
 
-            prefix = @"..\..\..\..\patterns\";
+            prefix = @"../../../../patterns/";
 
             List<string> list = new List<string>();
             list.Add("pulsar1.txt");
